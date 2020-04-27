@@ -1,0 +1,15 @@
+{
+    "name": "lmxqxzy/spark",
+    "type": "library",
+    "require": {
+        "php": ">=7.2.5",
+        "laravel/framework": "^6.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "lmxqxzy",
+            "email": "lmxqxzy@outlook.com"
+        }
+    ]
+}
