@@ -1,5 +1,6 @@
 {
     "name": "lmxqxzy/spark",
+    "description": "The Spark Library.",
     "type": "library",
     "require": {
         "php": ">=7.2.5",
@@ -11,5 +12,20 @@
             "name": "lmxqxzy",
             "email": "lmxqxzy@outlook.com"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-4": {
+            "Spark\\": "src/"
+        },
+        "files": [
+            "src/Spark/helpers.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Spark\\Providers\\ServiceProvider"
+            ]
+        }
+    }
 }
