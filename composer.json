@@ -15,7 +15,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Spark\\": "src/"
+            "Spark\\": "src/Spark/"
         },
         "files": [
             "src/Spark/helpers.php"
@@ -24,7 +24,7 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Spark\\Providers\\ServiceProvider"
+                "Spark\\Foundation\\Providers\\ServiceProvider"
             ]
         }
     }
