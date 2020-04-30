@@ -50,6 +50,7 @@ LOGO;
      */
     public function handle()
     {
-        $this->info('The compiled services & packages files have been removed.');
+        $this->line(static::$logo);
+        $this->info('spark success');
     }
 }

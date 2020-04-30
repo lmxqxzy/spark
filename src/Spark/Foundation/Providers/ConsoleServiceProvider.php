@@ -3,10 +3,10 @@
 namespace Spark\Foundation\Providers;
 
 use Illuminate\Contracts\Support\DeferrableProvider;
-use Illuminate\Foundation\Providers\ConsoleSupportServiceProvider;
+use Illuminate\Support\ServiceProvider;
 use Spark\Foundation\Console\SparkCommand;
 
-class ConsoleServiceProvider extends ConsoleSupportServiceProvider implements DeferrableProvider
+class ConsoleServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * The commands to be registered.
