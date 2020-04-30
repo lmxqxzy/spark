@@ -6,7 +6,6 @@ use Illuminate\Console\Command;
 
 class SparkCommand extends Command
 { 
-
     /**
      * The console command signature
      *

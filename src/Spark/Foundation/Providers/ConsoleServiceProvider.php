@@ -5,6 +5,8 @@ namespace Spark\Foundation\Providers;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 use Spark\Foundation\Console\SparkCommand;
+use Spark\Foundation\Console\SparkInstallCommand;
+use Spark\Foundation\Console\SparkUninstallCommand;
 
 class ConsoleServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -15,8 +17,8 @@ class ConsoleServiceProvider extends ServiceProvider implements DeferrableProvid
      */
     protected $commands = [
         'SparkList' => 'command.spark.list',
-        // 'SparkInstall' => 'command.spark.install',
-        // 'SparkUninstall' => 'command.spark.uninstall'
+        'SparkInstall' => 'command.spark.install',
+        'SparkUninstall' => 'command.spark.uninstall'
     ];
 
     /**
@@ -64,17 +66,24 @@ class ConsoleServiceProvider extends ServiceProvider implements DeferrableProvid
             return new SparkCommand;
         });
     }
+
     protected function registerSparkInstallCommand()
     {
-
+        $this->app->singleton('command.spark.install', function () {
+            return new SparkInstallCommand;
+        });
     }
+
     protected function registerSparkUninstallCommand()
     {
-
+        $this->app->singleton('command.spark.uninstall', function () {
+            return new SparkUninstallCommand;
+        });
     }
+
     protected function registerSparkNameCommand()
     {
-
+        $this->app->singleton('command.spark.name', function () { });
     }
 
     /**
