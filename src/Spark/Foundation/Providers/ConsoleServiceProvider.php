@@ -2,10 +2,11 @@
 
 namespace Spark\Foundation\Providers;
 
-use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Foundation\Providers\ConsoleSupportServiceProvider;
 use Spark\Foundation\Console\SparkCommand;
 
-class ConsoleServiceProvider extends BaseServiceProvider
+class ConsoleServiceProvider extends ConsoleSupportServiceProvider implements DeferrableProvider
 {
     /**
      * The commands to be registered.
@@ -45,6 +46,7 @@ class ConsoleServiceProvider extends BaseServiceProvider
      * Register the given commands.
      *
      * @param  array  $commands
+     * 
      * @return void
      */
     protected function registerCommands(array $commands)

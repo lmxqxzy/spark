@@ -2,9 +2,9 @@
 
 namespace Spark\Foundation\Providers;
 
-use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Illuminate\Support\AggregateServiceProvider;
 
-class ServiceProvider extends BaseServiceProvider
+class ServiceProvider extends AggregateServiceProvider
 {
     /**
      * The provider class names.
