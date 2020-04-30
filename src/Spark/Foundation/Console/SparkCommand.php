@@ -12,7 +12,7 @@ class SparkCommand extends Command
      *
      * @var string
      */
-    // protected $signature = 'spark';
+    protected $signature = 'spark';
 
     /**
      * The console command name.
