@@ -61,7 +61,7 @@ LOGO;
      */
     public function handle()
     {
-        $this->line(static::$logo);
+        // $this->line(static::$logo);
         $this->line(static::$logo_oblique);
         $this->info('spark success');
     }
