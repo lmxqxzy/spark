@@ -25,22 +25,7 @@ class SparkUninstallCommand extends Command
      *
      * @var string
      */
-    protected $description = 'list all spark commands';
-
-    
-    /**
-     * @var string
-     */
-    public static $logo = <<<LOGO
-   __ __    _ ____       _        _ ____     _    _
-  / __ __\ |  ____ \    / \      |  ____ \  | |  / /
- / /       | |    \ \  /   \     | |    \ \ | | / /
- \ \__ __  | |____/ / / / \ \    | |____/ / | |/ /
-  \__ __ \ | |____ / / /___\ \   | |____ /  | |\ \
- __     \ \| |      / /__ __\ \  | |   \ \  | | \ \
- \ \____/ /| |     / /       \ \ | |    \ \ | |  \ \
-  \__ __ / |_|    /_/         \_\| |     \_\|_|   \_\
-LOGO;
+    protected $description = 'Remove all spark modules, including files and tables';
 
     /**
      * Execute the console command.
@@ -49,7 +34,6 @@ LOGO;
      */
     public function handle()
     {
-        $this->line(static::$logo);
-        $this->info('spark success');
+        $this->info('spark uninstall success!');
     }
 }

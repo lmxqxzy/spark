@@ -25,22 +25,7 @@ class SparkInstallCommand extends Command
      *
      * @var string
      */
-    protected $description = 'list all spark commands';
-
-    
-    /**
-     * @var string
-     */
-    public static $logo = <<<LOGO
-     ____    __ __               _ ___     _    _
-    / ____\ |  ___ \    /\      |  ___ \  | |  / /
-   / /      | |   \ \  /  \     | |   \ \ | | / /
-   \ \____  | |___/ / / /\ \    | |___/ / | |/ /
-    \____ \ | |___ / / /__\ \   | |___ /  | |\ \
-   __    \ \| |     / /____\ \  | |  \ \  | | \ \
-   \ \___/ /| |    / /      \ \ | |   \ \ | |  \ \
-    \____ / |_|   /_/        \_\| |    \_\|_|   \_\
-LOGO;
+    protected $description = 'Install all spark modules, including files and tables';
 
     /**
      * Execute the console command.
@@ -49,7 +34,6 @@ LOGO;
      */
     public function handle()
     {
-        $this->line(static::$logo);
-        $this->info('spark success');
+        $this->info('spark install success!');
     }
 }

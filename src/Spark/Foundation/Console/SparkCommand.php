@@ -3,6 +3,7 @@
 namespace Spark\Foundation\Console;
 
 use Illuminate\Console\Command;
+use Spark\Foundation\Spark;
 
 class SparkCommand extends Command
 { 
@@ -25,7 +26,7 @@ class SparkCommand extends Command
      *
      * @var string
      */
-    protected $description = 'list all spark commands';
+    protected $description = 'Lists all spark commands';
 
     
     /**
@@ -63,6 +64,35 @@ LOGO;
     {
         // $this->line(static::$logo);
         $this->line(static::$logo_oblique);
-        $this->info('spark success');
+
+        $this->line(Spark::getLongVersion());
+
+        $this->comment('');
+        $this->comment('Available commands:');
+
+        $this->listAdminCommands();
+    }
+
+    /**
+     * Lists commands.
+     *
+     * @return void
+     */
+    protected function listAdminCommands()
+    {
+        $commands = collect(Artisan::all())->mapWithKeys(function ($command, $key) {
+            if (Str::startsWith($key, 'spark:')) {
+                return [$key => $command];
+            }
+
+            return [];
+        })->toArray();
+
+        $width = $this->getColumnWidth($commands);
+
+        /** @var Command $command */
+        foreach ($commands as $command) {
+            $this->line(sprintf(" %-{$width}s %s", $command->getName(), $command->getDescription()));
+        }
     }
 }
