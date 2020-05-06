@@ -3,6 +3,7 @@
 namespace Spark\Foundation\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use Spark\Foundation\Spark;
 
 class SparkCommand extends Command
