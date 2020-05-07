@@ -2,30 +2,21 @@
 
 namespace Spark\Foundation\Console;
 
-use Illuminate\Console\Command;
-
-class SparkInstallCommand extends Command
+class InstallCommand extends SparkCommand
 { 
     /**
      * The console command signature
      *
      * @var string
      */
-    protected $signature = 'spark:install';
-
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'spark:install';
+    protected $signature = 'install';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Install all spark modules, including files and tables';
+    protected $description = 'Install all spark modules, files and tables';
 
     /**
      * Execute the console command.

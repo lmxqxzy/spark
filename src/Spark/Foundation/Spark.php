@@ -8,6 +8,6 @@ class Spark
 
     public static function getLongVersion()
     {
-        return sprintf('spark <comment>version</comment> <info>%s</info>', self::VERSION);
+        return sprintf('Spark <info>%s</info>', self::VERSION);
     }
 }
