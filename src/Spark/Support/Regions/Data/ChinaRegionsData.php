@@ -1,4 +1,5 @@
 <?php
+// 2020.2 lastest http://www.mca.gov.cn/article/sj/xzqh/2020/2020/202003301019.html
 return [
   110000 => '北京市',
   110101 => '东城区',
