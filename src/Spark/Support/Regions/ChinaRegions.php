@@ -2,19 +2,32 @@
 
 namespace Spark\Support\Regions;
 
+use Spark\Support\Arr;
+
 class ChinaRegions
 {
+    /**
+     * 直辖市
+     */
+    const DIRECT_CITIES = ['北京市', '天津市', '重庆市', '上海市'];
+
+    /**
+     * 解析原始数据成单数组
+     *
+     * @param string $file_path 原始数据文件路径
+     * @param string $save_path 数组文件保存路径
+     *
+     * @return int|false|null
+     */
     public static function parseOriginalDataToArray(
         string $file_path = null,
         string $save_path = null
     ) {
-        $ds = DIRECTORY_SEPARATOR;
-        $dir = __DIR__;
         if (is_null($file_path)) {
-            $file_path = $dir . $ds . 'data' . $ds . 'ChinaRegionsData';
+            $file_path = static::defaultDataPath();
         }
         if (is_null($save_path)) {
-            $save_path = $file_path . '.php';
+            $save_path = static::defaultDataArrayPath();
         }
         $content = file_get_contents($file_path);
         if (is_string($content)) {
@@ -32,23 +45,19 @@ class ChinaRegions
                     $data[(string) $code] = $name;
                 }
             }
-            $str = str_replace("array (", '[', var_export($data, true));
-            $str = str_replace(')', ']', $str);
-            $str = substr_replace($str, '', strrpos($str, ','), 1);
-            $save = file_put_contents(
-                $save_path,
-                "<?php\r\n// "
-                    . $first_line
-                    . "\r\nreturn "
-                    . $str . ";"
-            );
+            $str = Arr::export($data, true);
+            $contents = [
+                "<?php\r\n// ",
+                $first_line,
+                "\r\nreturn ",
+                $str . ";"
+            ];
+            return file_put_contents($save_path, $contents, LOCK_EX);
         }
     }
 
-    public static function parseDataTree(
-        string $data_path = null,
-        string $save_path = null
-    ) {
+    public static function loadDataArray(string $data_path = null)
+    {
         $ds = DIRECTORY_SEPARATOR;
         $dir = __DIR__;
         $data_dir = $dir . $ds . 'data' . $ds;
@@ -56,90 +65,132 @@ class ChinaRegions
         if (is_null($data_path)) {
             $data_path = $data_dir . $name . '.php';
         }
+        return require $data_path;
+    }
+
+    /**
+     * 单数组解析成多层次的结构数组
+     *
+     * @param string $array_path 单数组文件路径
+     * @param string $save_path
+     *
+     * @return array
+     */
+    public static function parseDataTree(
+        string $array_path = null,
+        string $save_path = null
+    ) {
+        if (is_null($array_path)) {
+            $data_path = static::defaultArrayPath();
+        }
         if (is_null($save_path)) {
-            $save_path = $data_dir . 'Tree' . $ds . $name . 'Tree.php';
+            $save_path = static::defaultTreeSavePath();
         }
 
-        $data = include $data_path;
+        $data = require $data_path;
         $country = [];
         $province = [];
         $city = [];
         $district = [];
-        $dis_cities = ['北京市', '天津市', '重庆市', '上海市'];
-        array_walk_recursive($data, function ($value, $key) use (&$country, &$province) {
-            if (preg_match("/[1-9]{1,2}0{4}/", $key) == 1) {
-                $country[$key]['name'] = $value;
-                $province[$key] = $value;
+        $dis_cities = static::DIRECT_CITIES;
+
+        /** 省份解析，依据格式：2位不为0+4个0 */
+        array_walk_recursive(
+            $data,
+            function ($value, $key)
+            use (&$country, &$province) {
+                if (preg_match("/[1-9]{1,2}0{4}/", $key) === 1) {
+                    $country[$key]['name'] = $value;
+                    $province[$key] = $value;
+                }
             }
-        });
+        );
 
         $except_province = array_diff($data, $province);
 
+        /** 城市解析，依据格式：4位不为0+2个0 */
         foreach ($province as $pkey => $pvalue) {
-            array_walk_recursive($except_province, function ($value, $key) use ($pkey, &$country, &$city) {
-                $prefix = substr($pkey, 0, 2);
-                if (preg_match('/^' . $prefix . '[0-9]{2}0{2}$/', $key) == 1) {
-                    $country[$pkey]['items'][$key]['name'] = $value;
-                    $city[$key] = $value;
+            array_walk_recursive(
+                $except_province,
+                function ($value, $key)
+                use ($pkey, &$country, &$city) {
+                    $prefix = substr($pkey, 0, 2);
+                    if (preg_match('/^' . $prefix . '[0-9]{2}0{2}$/', $key) === 1) {
+                        $country[$pkey]['items'][$key]['name'] = $value;
+                        $city[$key] = $value;
+                    }
                 }
-            });
+            );
         }
 
         $district = array_diff($except_province, $city);
 
+        /** 区县解析，直辖市的区县划分在普通城市层次 */
         foreach ($country as $pkey => $province_array) {
             if (!isset($province_array['items'])) {
-                array_walk_recursive($district, function ($value, $key) use ($pkey, $province_array, $dis_cities, &$country) {
-                    $prefix = substr($pkey, 0, 2);
-                    if (preg_match('/^' . $prefix . '0{1}[0-9]{3}$/', $key)) {
-
-                        if (in_array($province_array['name'], $dis_cities)) {
-                            $city_key = substr($key, 0, 4) . '00';
-                            if (isset($country[$pkey]['items'][$city_key]['items'])) {
-                                $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                            } else {
-                                if (isset($country[$pkey]['items'][$city_key])) {
-                                    $country[$pkey]['items'][$city_key]['items'] = [];
-                                    $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                                } else {
-                                    $country[$pkey]['items'][$city_key] = ['name' => $province_array['name']];
-                                    $country[$pkey]['items'][$city_key]['items'] = [];
-                                    $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                                }
-                            }
-                        } else {
-                            // $country[$pkey]['items'][$key] = $value;
-                            $country[$pkey]['items'][$key] = ['name' => $value];
+                array_walk_recursive(
+                    $district,
+                    function ($value, $key)
+                    use ($pkey, $province_array, $dis_cities, &$country) {
+                        $prefix = substr($pkey, 0, 2);
+                        if (preg_match('/^' . $prefix . '0{1}[0-9]{3}$/', $key) === 1) {
+                            $item = ['name' => $value];
+                            // 直辖市城市使用省份进行重复
+                            // if (in_array($province_array['name'], $dis_cities)) {
+                            //     $city_key = $pkey;
+                            //     if (isset($country[$pkey]['items'][$city_key]['items'])) {
+                            //         $country[$pkey]['items'][$city_key]['items'][$key] = $item;
+                            //     } else {
+                            //         if (isset($country[$pkey]['items'][$city_key])) {
+                            //             $country[$pkey]['items'][$city_key]['items'] = [];
+                            //             $country[$pkey]['items'][$city_key]['items'][$key] = $item;
+                            //         } else {
+                            //             $city_item = ['name' => $province_array['name']];
+                            //             $country[$pkey]['items'][$city_key] = $city_item;
+                            //             $country[$pkey]['items'][$city_key]['items'] = [];
+                            //             $country[$pkey]['items'][$city_key]['items'][$key] = $item;
+                            //         }
+                            //     }
+                            // } else {
+                            //     $country[$pkey]['items'][$key] = ['name' => $value];
+                            // }
+                            // 一般处理
+                            $country[$pkey]['items'][$key] = $item;
                         }
                     }
-                });
+                );
             } else {
                 if (is_array($province_array['items'])) {
                     foreach ($province_array['items'] as $ckey => $city_array) {
-                        array_walk_recursive($district, function ($value, $key) use ($pkey, $province_array, $dis_cities, $ckey, &$country) {
-                            $prefix = substr($ckey, 0, 4);
-                            if (preg_match('/^' . $prefix . '[0-9]{2}$/', $key)) {
-
-                                if (in_array($province_array['name'], $dis_cities)) {
-                                    $city_key = substr($key, 0, 4) . '00';
-                                    if (isset($country[$pkey]['items'][$city_key]['items'])) {
-                                        $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                                    } else {
-                                        if (isset($country[$pkey]['items'][$city_key])) {
-                                            $country[$pkey]['items'][$city_key]['items'] = [];
-                                            $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                                        } else {
-                                            $country[$pkey]['items'][$city_key] = ['name' => $province_array['name']];
-                                            $country[$pkey]['items'][$city_key]['items'] = [];
-                                            $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
-                                        }
-                                    }
-                                } else {
-                                    // $country[$pkey]['items'][$ckey]['items'][$key] = $value;
+                        array_walk_recursive(
+                            $district,
+                            function ($value, $key)
+                            use ($pkey, $province_array, $dis_cities, $ckey, &$country) {
+                                $prefix = substr($ckey, 0, 4);
+                                if (preg_match('/^' . $prefix . '[0-9]{2}$/', $key) === 1) {
+                                    // 直辖市城市使用省份进行重复
+                                    // if (in_array($province_array['name'], $dis_cities)) {
+                                    //     $city_key = $pkey;
+                                    //     if (isset($country[$pkey]['items'][$city_key]['items'])) {
+                                    //         $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
+                                    //     } else {
+                                    //         if (isset($country[$pkey]['items'][$city_key])) {
+                                    //             $country[$pkey]['items'][$city_key]['items'] = [];
+                                    //             $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
+                                    //         } else {
+                                    //             $country[$pkey]['items'][$city_key] = ['name' => $province_array['name']];
+                                    //             $country[$pkey]['items'][$city_key]['items'] = [];
+                                    //             $country[$pkey]['items'][$city_key]['items'][$key] = ['name' => $value];
+                                    //         }
+                                    //     }
+                                    // } else {
+                                    //     $country[$pkey]['items'][$ckey]['items'][$key] = ['name' => $value];
+                                    // }
+                                    // 一般处理
                                     $country[$pkey]['items'][$ckey]['items'][$key] = ['name' => $value];
                                 }
                             }
-                        });
+                        );
                     }
                 }
             }
@@ -149,6 +200,15 @@ class ChinaRegions
         return $country;
     }
 
+    /**
+     * Undocumented function
+     *
+     * @param array $arr
+     * @param string $save_path
+     * @param string $commit
+     *
+     * @return int|false
+     */
     public static function saveArrayToFile(
         array $arr,
         string $save_path,
@@ -156,110 +216,93 @@ class ChinaRegions
     ) {
         $header = "<?php\r\n\r\n";
         $commit = $commit ? $commit . "\r\n" : '';
-        // $data = var_export($arr, true);
-        // // 替换数组符号
-        // $data = str_replace("array (", '[', $data);
-        // $data = str_replace(')', ']', $data);
-        // // 去除最后一个元素末的逗号
-        // $data = substr_replace($data, '', strrpos($data, ','), 1);
-        $data = static::varexport($arr, true);
+
+        $data = Arr::export($arr, true);
         $content = $header . $commit . 'return ' . $data . ';';
         return file_put_contents($save_path, $content);
     }
 
-    protected static function varexport($expression, $return = false)
+    public function save($data, string $save_path = null)
     {
-        $export = var_export($expression, true);
-        $patterns = [
-            "/array \(/" => '[',
-            "/^([ ]*)\)(,?)$/m" => '$1]$2',
-            "/=>[ ]?\n[ ]+\[/" => '=> [',
-            "/([ ]*)(\'[^\']+\') => ([\[\'])/" => '$1$2 => $3',
-        ];
-        $export = preg_replace(array_keys($patterns), array_values($patterns), $export);
-        if ((bool) $return) return $export;
-        else echo $export;
+        $ds = DIRECTORY_SEPARATOR;
+        $dir = __DIR__;
+        $data_dir = $dir . $ds . 'data' . $ds;
+        $name = 'ChinaRegionsData';
+        if (is_null($save_path)) {
+            $save_path = $data_dir . 'Tree' . $ds . $name . 'Tree.php';
+        }
     }
 
+    protected static function defaultCommit()
+    { }
 
     /**
-     * 对country.php数组文件格式改进，输出json
+     * 获取默认数据路径
+     *
+     * @return string
      */
-    // function json()
-    // {
-    //     $data = include('country.php');
-    //     $country = [];
-    //     $province = [];
-    //     $city = [];
-    //     $district = [];
-    //     array_walk_recursive($data, function ($value, $key) use (&$country, &$province) {
-    //         if (preg_match("/[1-9]{1,2}0{4}/", $key) == 1) {
-    //             $country[$key]['name'] = $value;
-    //             $province[$key] = $value;
-    //         }
-    //     });
-
-    //     $except_province = array_diff($data, $province);
-
-    //     foreach ($province as $pkey => $pvalue) {
-    //         array_walk_recursive($except_province, function ($value, $key) use ($pkey, $pvalue, &$country, &$city) {
-    //             $prefix = substr($pkey, 0, 2);
-    //             if (preg_match('/^' . $prefix . '[0-9]{2}0{2}$/', $key) == 1) {
-    //                 $country[$pkey]['items'][$key]['name'] = $value;
-    //                 $city[$key] = $value;
-    //             }
-    //         });
-    //     }
-
-    //     $only_district = array_diff($except_province, $city);
-
-    //     foreach ($country as $pkey => $province_array) {
-    //         if (!isset($province_array['items'])) {
-    //             array_walk_recursive($only_district, function ($value, $key) use ($pkey, &$country) {
-    //                 $prefix = substr($pkey, 0, 2);
-    //                 if (preg_match('/^' . $prefix . '0{1}[0-9]{3}$/', $key)) {
-    //                     $country[$pkey]['items'][$key] = $value;
-    //                 }
-    //             });
-    //         } else {
-    //             if (is_array($province_array['items'])) {
-    //                 foreach ($province_array['items'] as $ckey => $city_array) {
-    //                     array_walk_recursive($only_district, function ($value, $key) use ($pkey, $ckey, &$country) {
-    //                         $prefix = substr($ckey, 0, 4);
-    //                         if (preg_match('/^' . $prefix . '[0-9]{2}$/', $key)) {
-    //                             $country[$pkey]['items'][$ckey]['items'][$key] = $value;
-    //                         }
-    //                     });
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     header("Content-type:text/html;charset=utf-8");
-    //     return json_encode($country, JSON_UNESCAPED_UNICODE);
-    // }
+    protected static function defaultDataPath(): string
+    {
+        $dir = static::defaultDataDir();
+        $name = static::defaultFileName();
+        return $dir . $name;
+    }
 
     /**
-     * 使用country文件读取并把结果写入到country.php
+     * 获取默认数据数组路径
+     *
+     * @return string
      */
-    // function load()
-    // {
-    //     $file_name = __DIR__ . DIRECTORY_SEPARATOR . 'country';
-    //     $data = [];
-    //     if (file_exists($file_name)) {
-    //         if ($file = fopen($file_name, 'r')) {
-    //             while (!feof($file)) {
-    //                 $t = trim(fgets($file));
-    //                 $t = preg_replace('/\n{2,}/', '\n', $t);
-    //                 $tt = explode(' ', $t);
-    //                 if (count($tt) >= 2) {
-    //                     $data[trim($tt[0])] = trim($tt[1]);
-    //                 }
-    //             }
-    //             fclose($file);
-    //         }
-    //     }
-    //     $new = str_replace("array (", '[', var_export($data, true));
-    //     $new = str_replace(')', ']', $new);
-    //     return file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . 'country.php', "<?php\r\nreturn " . $new . ";");
-    // }
+    protected static function defaultArrayPath(): string
+    {
+        $dir = static::defaultDataDir();
+        $name = static::defaultFileName() . '.php';
+        return $dir . $name;
+    }
+
+    /**
+     * 获取默认数据树数组保存路径
+     *
+     * @return string
+     */
+    protected static function defaultTreeSavePath(): string
+    {
+        $dir = static::defaultDataTreeDir();
+        $name = static::defaultFileName() . 'Tree.php';
+        return $dir . $name;
+    }
+
+    /**
+     * 获取默认数据目录
+     *
+     * @return string
+     */
+    protected static function defaultDataDir(): string
+    {
+        $ds = DIRECTORY_SEPARATOR;
+        $dir = __DIR__;
+        return $dir . $ds . 'Data' . $ds;
+    }
+
+    /**
+     * 获取默认数据树目录
+     *
+     * @return string
+     */
+    protected static function defaultDataTreeDir(): string
+    {
+        $ds = DIRECTORY_SEPARATOR;
+        $dir = static::defaultDataTreeDir();
+        return $dir . 'Tree' . $ds;
+    }
+
+    /**
+     * 获取默认文件名
+     *
+     * @return string
+     */
+    protected static function defaultFileName(): string
+    {
+        return 'ChinaRegionsData';
+    }
 }
